@@ -1,0 +1,16 @@
+GET http://127.0.0.1:8000/api/health
+
+### 
+
+POST http://127.0.0.1:8000/api/move
+content-type: application/json
+
+{
+  "labyrinth": [
+    [0, 0, 1],
+    [0, 1, 0],
+    [0, 0, 0]
+  ],
+  "position": [0, 0],
+  "goal": [2, 2]
+}
