@@ -108,12 +108,18 @@ async def get_mouse_move(request: Dict[str, Any]) -> Dict[str, Any]:
         
         goal_position = [closest_cheese["x"], closest_cheese["y"]]
         
-        # Get next move using the AI service
+        # Convert cheese positions to list format for AI optimization
+        available_cheeses_list = []
+        for cheese in cheese_positions:
+            available_cheeses_list.append([cheese["x"], cheese["y"]])
+        
+        # Get next move using the AI service with available cheeses
         next_position = mouse_ai_service.calculate_next_position(
             labyrinth=python_grid,
             current_position=current_pos,
             goal_position=goal_position,
-            mouse_id=mouse_id
+            mouse_id=mouse_id,
+            available_cheeses=available_cheeses_list
         )
         
         # Convert position change to direction

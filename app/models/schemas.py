@@ -12,6 +12,7 @@ class MoveRequest:
     labyrinth: List[List[int]] = field(default_factory=list)
     position: List[int] = field(default_factory=list)
     goal: List[int] = field(default_factory=list)
+    available_cheeses: List[List[int]] = field(default_factory=list)
 
 
 @dataclass
@@ -33,6 +34,7 @@ class MoveRequestSchema(Schema):
     labyrinth = fields.List(fields.List(fields.Integer()), required=True)
     position = fields.List(fields.Integer(), required=True, validate=lambda x: len(x) == 2)
     goal = fields.List(fields.Integer(), required=True, validate=lambda x: len(x) == 2)
+    available_cheeses = fields.List(fields.List(fields.Integer()), required=False, allow_none=True)
 
     @validates("labyrinth")
     def validate_labyrinth(self, value):

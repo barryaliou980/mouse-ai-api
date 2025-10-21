@@ -21,7 +21,8 @@ class MouseAIService:
         labyrinth: List[List[int]], 
         current_position: List[int], 
         goal_position: List[int],
-        mouse_id: str = "default"
+        mouse_id: str = "default",
+        available_cheeses: List[List[int]] = None
     ) -> List[int]:
         """
         Calculate the next position for the mouse using intelligent algorithm.
@@ -30,6 +31,8 @@ class MouseAIService:
             labyrinth: 2D maze representation (0=free, 1=wall)
             current_position: Current mouse position [x, y]
             goal_position: Target goal position [x, y]
+            mouse_id: Unique identifier for the mouse
+            available_cheeses: List of available cheese positions [[x, y], ...]
             
         Returns:
             List[int]: Next position [x, y]
@@ -45,6 +48,13 @@ class MouseAIService:
             else:
                 logger.error(f"No valid position found near {current_position}")
                 return current_position
+        
+        # If multiple cheeses available, choose the nearest one
+        if available_cheeses and len(available_cheeses) > 1:
+            optimal_cheese = self._find_nearest_cheese(current_position, available_cheeses, labyrinth)
+            if optimal_cheese:
+                goal_position = optimal_cheese
+                logger.info(f"Mouse {mouse_id} targeting nearest cheese at {goal_position}")
         
         # If already at goal, stay in place
         if current_position == goal_position:
@@ -369,3 +379,48 @@ class MouseAIService:
         
         # If no moves towards goal are possible, we need to explore
         return moves_towards_goal == 0
+    
+    def _find_nearest_cheese(self, current_position: List[int], available_cheeses: List[List[int]], labyrinth: List[List[int]]) -> List[int]:
+        """
+        Find the nearest cheese using pathfinding distance, not just Manhattan distance.
+        
+        Args:
+            current_position: Current mouse position [x, y]
+            available_cheeses: List of available cheese positions [[x, y], ...]
+            labyrinth: 2D maze representation
+            
+        Returns:
+            List[int]: Position of the nearest cheese [x, y]
+        """
+        if not available_cheeses:
+            return None
+        
+        best_cheese = None
+        shortest_path_length = float('inf')
+        
+        for cheese_pos in available_cheeses:
+            # Calculate actual path length using A* algorithm
+            path = self._find_path_astar(labyrinth, current_position, cheese_pos)
+            
+            if path:
+                path_length = len(path) - 1  # -1 because path includes start position
+                
+                # If this cheese is closer (or same distance but better path), choose it
+                if path_length < shortest_path_length:
+                    shortest_path_length = path_length
+                    best_cheese = cheese_pos
+                elif path_length == shortest_path_length:
+                    # If same path length, prefer cheese that's closer in Manhattan distance
+                    current_manhattan = abs(current_position[0] - cheese_pos[0]) + abs(current_position[1] - cheese_pos[1])
+                    best_manhattan = abs(current_position[0] - best_cheese[0]) + abs(current_position[1] - best_cheese[1])
+                    
+                    if current_manhattan < best_manhattan:
+                        best_cheese = cheese_pos
+            else:
+                # If no path found to this cheese, use Manhattan distance as fallback
+                manhattan_distance = abs(current_position[0] - cheese_pos[0]) + abs(current_position[1] - cheese_pos[1])
+                if manhattan_distance < shortest_path_length:
+                    shortest_path_length = manhattan_distance
+                    best_cheese = cheese_pos
+        
+        return best_cheese

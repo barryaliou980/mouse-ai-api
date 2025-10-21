@@ -28,6 +28,9 @@ class MouseAgent:
         self.model = None
         self.use_ai = settings.USE_AI_AGENT
         
+        # Initialize the intelligent mouse AI service (lazy import to avoid circular dependency)
+        self.mouse_ai_service = None
+        
         if self.use_ai and self.model_path:
             self._load_model()
     
@@ -64,7 +67,8 @@ class MouseAgent:
         self, 
         labyrinth: List[List[int]], 
         current_position: List[int], 
-        goal_position: List[int]
+        goal_position: List[int],
+        available_cheeses: List[List[int]] = None
     ) -> List[int]:
         """
         Get next move recommendation from AI agent.
@@ -73,6 +77,7 @@ class MouseAgent:
             labyrinth: 2D maze representation
             current_position: Current position [x, y]
             goal_position: Goal position [x, y]
+            available_cheeses: List of available cheese positions [[x, y], ...]
             
         Returns:
             List[int]: Recommended next position
@@ -80,7 +85,18 @@ class MouseAgent:
         if self.use_ai and self.model is not None:
             return self._ai_inference(labyrinth, current_position, goal_position)
         else:
-            return self._fallback_greedy_algorithm(labyrinth, current_position, goal_position)
+            # Use the intelligent mouse AI service instead of simple greedy
+            if self.mouse_ai_service is None:
+                from app.services.mouse_ai_service import MouseAIService
+                self.mouse_ai_service = MouseAIService()
+            
+            return self.mouse_ai_service.calculate_next_position(
+                labyrinth=labyrinth,
+                current_position=current_position,
+                goal_position=goal_position,
+                mouse_id="ai_mouse",
+                available_cheeses=available_cheeses
+            )
     
     def _ai_inference(
         self, 

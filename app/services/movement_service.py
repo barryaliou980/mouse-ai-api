@@ -18,15 +18,17 @@ class MovementService:
         self, 
         labyrinth: List[List[int]], 
         current_position: List[int], 
-        goal_position: List[int]
+        goal_position: List[int],
+        available_cheeses: List[List[int]] = None
     ) -> List[int]:
         """
-        Calculate the next position for the mouse using greedy algorithm.
+        Calculate the next position for the mouse using intelligent algorithm.
         
         Args:
             labyrinth: 2D maze representation
             current_position: Current mouse position [x, y]
             goal_position: Target goal position [x, y]
+            available_cheeses: List of available cheese positions [[x, y], ...]
             
         Returns:
             List[int]: Next position [x, y]
@@ -50,7 +52,8 @@ class MovementService:
         return self.ai_agent.get_next_move(
             labyrinth=labyrinth,
             current_position=current_position,
-            goal_position=goal_position
+            goal_position=goal_position,
+            available_cheeses=available_cheeses
         )
     
     def _greedy_algorithm(
