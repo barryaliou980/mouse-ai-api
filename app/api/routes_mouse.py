@@ -10,8 +10,8 @@ from app.services.mouse_ai_service import MouseAIService
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["mouse"])
 
-# Initialize service
-mouse_ai_service = MouseAIService()
+# Dictionary to store separate AI service instances for each mouse
+mouse_ai_services: Dict[str, MouseAIService] = {}
 
 
 @router.post("/move")
@@ -55,6 +55,27 @@ async def get_mouse_move(request: Dict[str, Any]) -> Dict[str, Any]:
         environment = request.get("environment", {})
         mouse_state = request.get("mouseState", {})
         available_moves = request.get("availableMoves", ["north", "south", "east", "west"])
+        
+        # Extract mouse tag from mouse_state or use mouse_id as fallback
+        mouse_tag = mouse_state.get("tag", mouse_id)
+        if isinstance(mouse_tag, str) and mouse_tag.isdigit():
+            mouse_tag = int(mouse_tag)
+        elif isinstance(mouse_tag, str):
+            # Try to extract number from mouse_id (e.g., "souris1" -> 1)
+            import re
+            match = re.search(r'(\d+)', mouse_id)
+            mouse_tag = int(match.group(1)) if match else 1
+        else:
+            mouse_tag = mouse_tag if isinstance(mouse_tag, int) else 1
+            
+        logger.info(f"🧵 Thread {mouse_tag} - Received move request for mouse: {mouse_id}")
+        
+        # Create or get AI service instance for this specific mouse
+        if mouse_id not in mouse_ai_services:
+            mouse_ai_services[mouse_id] = MouseAIService(f"Thread {mouse_tag}")
+            logger.info(f"🧵 Thread {mouse_tag} - Created new AI service instance for mouse: {mouse_id}")
+        
+        mouse_ai_service = mouse_ai_services[mouse_id]
         
         # Convert frontend grid format to Python format
         grid = environment.get("grid", [])
@@ -141,6 +162,8 @@ async def get_mouse_move(request: Dict[str, Any]) -> Dict[str, Any]:
         else:
             reasoning = f"Moving {move} towards cheese at ({closest_cheese['x']}, {closest_cheese['y']})"
         
+        logger.info(f"🧵 Thread {mouse_tag} - Returning move: {move} - {reasoning}")
+        
         return {
             "mouseId": mouse_id,
             "move": move,
@@ -177,10 +200,21 @@ def _position_to_direction(current_pos: List[int], next_pos: List[int]) -> str:
         return "north"  # Default fallback
 
 
+@router.post("/cleanup")
+async def cleanup_mouse_services() -> Dict[str, str]:
+    """Clean up all mouse AI service instances."""
+    global mouse_ai_services
+    count = len(mouse_ai_services)
+    mouse_ai_services.clear()
+    logger.info(f"Cleaned up {count} mouse AI service instances")
+    return {"status": "cleaned", "instances_removed": str(count)}
+
+
 @router.get("/health")
 async def health_check() -> Dict[str, str]:
     """Health check endpoint."""
     return {
         "status": "ok",
-        "message": "Mouse AI service is running"
+        "message": "Mouse AI service is running",
+        "active_instances": str(len(mouse_ai_services))
     }

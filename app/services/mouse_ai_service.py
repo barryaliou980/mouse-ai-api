@@ -12,9 +12,11 @@ logger = logging.getLogger(__name__)
 class MouseAIService:
     """Service for handling mouse AI logic compatible with frontend."""
     
-    def __init__(self):
-        """Initialize the AI service with position history tracking."""
-        self.position_history = {}  # mouse_id -> [previous_positions]
+    def __init__(self, mouse_id: str = "default"):
+        """Initialize the AI service with position history tracking for a specific mouse."""
+        self.mouse_id = mouse_id
+        self.position_history = []  # [previous_positions] for this specific mouse
+        logger.info(f"🧵 Thread {mouse_id} - Initialized MouseAIService for mouse: {mouse_id}")
     
     def calculate_next_position(
         self, 
@@ -37,6 +39,8 @@ class MouseAIService:
         Returns:
             List[int]: Next position [x, y]
         """
+        logger.info(f"🧵 Thread {mouse_id} - Starting calculation for position {current_position}, goal {goal_position}")
+        
         # Validate current position
         if not is_valid_position(current_position, labyrinth):
             logger.warning(f"Current position {current_position} is invalid, trying to find valid position")
@@ -54,19 +58,20 @@ class MouseAIService:
             optimal_cheese = self._find_nearest_cheese(current_position, available_cheeses, labyrinth)
             if optimal_cheese:
                 goal_position = optimal_cheese
-                logger.info(f"Mouse {mouse_id} targeting nearest cheese at {goal_position}")
+                logger.info(f"🧵 Thread {mouse_id} - Mouse {mouse_id} targeting nearest cheese at {goal_position}")
         
         # If already at goal, stay in place
         if current_position == goal_position:
-            logger.info(f"Mouse {mouse_id} is already at goal position {goal_position}")
+            logger.info(f"🧵 Thread {mouse_id} - Mouse {mouse_id} is already at goal position {goal_position}")
             return current_position
         
         # Use intelligent pathfinding with back-and-forth avoidance
         next_position = self._intelligent_move(labyrinth, current_position, goal_position, mouse_id)
         
         # Update position history
-        self._update_position_history(mouse_id, current_position, next_position)
+        self._update_position_history(current_position, next_position)
         
+        logger.info(f"🧵 Thread {mouse_id} - Calculated next position: {next_position}")
         return next_position
     
     def _intelligent_move(
@@ -108,7 +113,7 @@ class MouseAIService:
                     return forced_move
             
             # Check if this would be a back-and-forth movement
-            if self._is_back_and_forth_move(mouse_id, current_position, next_pos):
+            if self._is_back_and_forth_move(current_position, next_pos):
                 logger.info(f"Avoiding back-and-forth move from {current_position} to {next_pos}")
                 # Try alternative moves
                 alternative_move = self._find_alternative_move(labyrinth, current_position, goal_position, mouse_id)
@@ -209,7 +214,7 @@ class MouseAIService:
         
         # Try moves in priority order, avoiding back-and-forth
         for move in candidate_moves:
-            if is_valid_position(move, labyrinth) and not self._is_back_and_forth_move(mouse_id, current_position, move):
+            if is_valid_position(move, labyrinth) and not self._is_back_and_forth_move(current_position, move):
                 return move
         
         # If all preferred moves are back-and-forth, try any valid move
@@ -260,25 +265,22 @@ class MouseAIService:
         
         return None  # No valid position found
     
-    def _update_position_history(self, mouse_id: str, current_pos: List[int], next_pos: List[int]):
-        """Update position history for a mouse."""
-        if mouse_id not in self.position_history:
-            self.position_history[mouse_id] = []
-        
+    def _update_position_history(self, current_pos: List[int], next_pos: List[int]):
+        """Update position history for this mouse."""
         # Add current position to history
-        self.position_history[mouse_id].append(current_pos)
+        self.position_history.append(current_pos)
         
         # Keep only last 3 positions to avoid memory issues
-        if len(self.position_history[mouse_id]) > 3:
-            self.position_history[mouse_id] = self.position_history[mouse_id][-3:]
+        if len(self.position_history) > 3:
+            self.position_history = self.position_history[-3:]
     
-    def _is_back_and_forth_move(self, mouse_id: str, current_pos: List[int], next_pos: List[int]) -> bool:
+    def _is_back_and_forth_move(self, current_pos: List[int], next_pos: List[int]) -> bool:
         """Check if the next move would be a back-and-forth movement."""
-        if mouse_id not in self.position_history or len(self.position_history[mouse_id]) < 2:
+        if len(self.position_history) < 1:
             return False
         
         # Get the previous position (where the mouse came from)
-        previous_pos = self.position_history[mouse_id][-1]
+        previous_pos = self.position_history[-1]
         
         # Check if next_pos is the same as previous_pos (going back)
         return next_pos == previous_pos
@@ -291,7 +293,7 @@ class MouseAIService:
         valid_moves = []
         for pos in adjacent_positions:
             if (is_valid_position(pos, labyrinth) and 
-                not self._is_back_and_forth_move(mouse_id, current_pos, pos)):
+                not self._is_back_and_forth_move(current_pos, pos)):
                 valid_moves.append(pos)
         
         if not valid_moves:
