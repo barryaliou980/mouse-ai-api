@@ -12,20 +12,20 @@ def test_imports():
     """Test que tous les modules peuvent être importés."""
     try:
         from app.main import app
-        print("✅ Import app.main successful")
+        print(" Import app.main successful")
         
         from app.api.routes_mouse import router
-        print("✅ Import routes_mouse successful")
+        print(" Import routes_mouse successful")
         
         from app.services.mouse_ai_service import MouseAIService
-        print("✅ Import MouseAIService successful")
+        print(" Import MouseAIService successful")
         
         from app.core.utils import is_valid_position
-        print("✅ Import utils successful")
+        print(" Import utils successful")
         
         return True
     except Exception as e:
-        print(f"❌ Import failed: {e}")
+        print(f" Import failed: {e}")
         return False
 
 def test_service():
@@ -47,11 +47,11 @@ def test_service():
         goal_pos = [2, 2]
         
         next_pos = service.calculate_next_position(labyrinth, current_pos, goal_pos)
-        print(f"✅ Service test successful: {current_pos} -> {next_pos}")
+        print(f" Service test successful: {current_pos} -> {next_pos}")
         
         return True
     except Exception as e:
-        print(f"❌ Service test failed: {e}")
+        print(f" Service test failed: {e}")
         return False
 
 def main():
@@ -70,15 +70,15 @@ def main():
     # Résumé
     print("\n" + "=" * 40)
     print("Test Summary:")
-    print(f"Imports: {'✅' if import_ok else '❌'}")
-    print(f"Service: {'✅' if service_ok else '❌'}")
+    print(f"Imports: {'' if import_ok else ''}")
+    print(f"Service: {'' if service_ok else ''}")
     
     if import_ok and service_ok:
         print("\n🎉 All tests passed! API is ready to use.")
         print("\nTo start the server, run:")
         print("uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload")
     else:
-        print("\n❌ Some tests failed. Check the errors above.")
+        print("\n Some tests failed. Check the errors above.")
 
 if __name__ == "__main__":
     main()

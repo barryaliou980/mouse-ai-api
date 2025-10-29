@@ -5,6 +5,7 @@ from typing import List
 import logging
 
 from app.core.utils import is_valid_position, get_adjacent_positions
+from app.services.log_service import log_service
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +17,7 @@ class MouseAIService:
         """Initialize the AI service with position history tracking for a specific mouse."""
         self.mouse_id = mouse_id
         self.position_history = []  # [previous_positions] for this specific mouse
-        logger.info(f"🧵 Thread {mouse_id} - Initialized MouseAIService for mouse: {mouse_id}")
+        logger.info(f"- Thread {mouse_id} - Initialized MouseAIService for mouse: {mouse_id}")
     
     def calculate_next_position(
         self, 
@@ -39,7 +40,18 @@ class MouseAIService:
         Returns:
             List[int]: Next position [x, y]
         """
-        logger.info(f"🧵 Thread {mouse_id} - Starting calculation for position {current_position}, goal {goal_position}")
+        logger.info(f"- Thread {mouse_id} - Starting calculation for position {current_position}, goal {goal_position}")
+        
+        # Log du début du calcul d'IA
+        log_service.add_custom_log(
+            message=f" Thread {mouse_id} - Starting AI calculation for position {current_position}, goal {goal_position}",
+            level="DEBUG",
+            mouse_id=mouse_id,
+            current_position=current_position,
+            goal_position=goal_position,
+            available_cheeses=available_cheeses,
+            action="ai_calculation_start"
+        )
         
         # Validate current position
         if not is_valid_position(current_position, labyrinth):
@@ -58,11 +70,11 @@ class MouseAIService:
             optimal_cheese = self._find_nearest_cheese(current_position, available_cheeses, labyrinth)
             if optimal_cheese:
                 goal_position = optimal_cheese
-                logger.info(f"🧵 Thread {mouse_id} - Mouse {mouse_id} targeting nearest cheese at {goal_position}")
+                logger.info(f"- Thread {mouse_id} - Mouse {mouse_id} targeting nearest cheese at {goal_position}")
         
         # If already at goal, stay in place
         if current_position == goal_position:
-            logger.info(f"🧵 Thread {mouse_id} - Mouse {mouse_id} is already at goal position {goal_position}")
+            logger.info(f"- Thread {mouse_id} - Mouse {mouse_id} is already at goal position {goal_position}")
             return current_position
         
         # Use intelligent pathfinding with back-and-forth avoidance
@@ -71,7 +83,19 @@ class MouseAIService:
         # Update position history
         self._update_position_history(current_position, next_position)
         
-        logger.info(f"🧵 Thread {mouse_id} - Calculated next position: {next_position}")
+        logger.info(f"- Thread {mouse_id} - Calculated next position: {next_position}")
+        
+        # Log du résultat du calcul d'IA
+        log_service.add_custom_log(
+            message=f" Thread {mouse_id} - AI calculation completed: {current_position} -> {next_position}",
+            level="DEBUG",
+            mouse_id=mouse_id,
+            current_position=current_position,
+            next_position=next_position,
+            goal_position=goal_position,
+            action="ai_calculation_complete"
+        )
+        
         return next_position
     
     def _intelligent_move(

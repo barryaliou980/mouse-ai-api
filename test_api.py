@@ -95,9 +95,9 @@ def main():
     print(f"Move endpoint: {'✓' if move_ok else '✗'}")
     
     if health_ok and move_ok:
-        print("\n🎉 All tests passed! API is working correctly.")
+        print("\n All tests passed! API is working correctly.")
     else:
-        print("\n❌ Some tests failed. Check the server logs.")
+        print("\n Some tests failed. Check the server logs.")
 
 if __name__ == "__main__":
     main()

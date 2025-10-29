@@ -6,6 +6,7 @@ from typing import Dict, List, Any
 import logging
 
 from app.services.mouse_ai_service import MouseAIService
+from app.services.log_service import log_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["mouse"])
@@ -68,12 +69,31 @@ async def get_mouse_move(request: Dict[str, Any]) -> Dict[str, Any]:
         else:
             mouse_tag = mouse_tag if isinstance(mouse_tag, int) else 1
             
-        logger.info(f"🧵 Thread {mouse_tag} - Received move request for mouse: {mouse_id}")
+        logger.info(f"- Thread {mouse_tag} - Received move request for mouse: {mouse_id}")
+        
+        # Log du mouvement de souris pour le frontend
+        log_service.add_custom_log(
+            message=f"Thread {mouse_tag} - Received move request for mouse: {mouse_id}",
+            level="INFO",
+            mouse_id=mouse_id,
+            mouse_tag=mouse_tag,
+            position=position,
+            mouse_state=mouse_state
+        )
         
         # Create or get AI service instance for this specific mouse
         if mouse_id not in mouse_ai_services:
             mouse_ai_services[mouse_id] = MouseAIService(f"Thread {mouse_tag}")
-            logger.info(f"🧵 Thread {mouse_tag} - Created new AI service instance for mouse: {mouse_id}")
+            logger.info(f"- Thread {mouse_tag} - Created new AI service instance for mouse: {mouse_id}")
+            
+            # Log de création du service
+            log_service.add_custom_log(
+                message=f" Thread {mouse_tag} - Created new AI service instance for mouse: {mouse_id}",
+                level="INFO",
+                mouse_id=mouse_id,
+                mouse_tag=mouse_tag,
+                action="service_created"
+            )
         
         mouse_ai_service = mouse_ai_services[mouse_id]
         
@@ -162,7 +182,21 @@ async def get_mouse_move(request: Dict[str, Any]) -> Dict[str, Any]:
         else:
             reasoning = f"Moving {move} towards cheese at ({closest_cheese['x']}, {closest_cheese['y']})"
         
-        logger.info(f"🧵 Thread {mouse_tag} - Returning move: {move} - {reasoning}")
+        logger.info(f"- Thread {mouse_tag} - Returning move: {move} - {reasoning}")
+        
+        # Log du mouvement calculé
+        log_service.add_custom_log(
+            message=f"Thread {mouse_tag} - Calculated move: {move} for mouse {mouse_id}",
+            level="INFO",
+            mouse_id=mouse_id,
+            mouse_tag=mouse_tag,
+            move=move,
+            current_position=current_pos,
+            next_position=next_position,
+            reasoning=reasoning,
+            cheese_target=closest_cheese,
+            distance_to_cheese=distance_to_cheese
+        )
         
         return {
             "mouseId": mouse_id,
@@ -172,10 +206,32 @@ async def get_mouse_move(request: Dict[str, Any]) -> Dict[str, Any]:
         
     except Exception as e:
         logger.error(f"Error processing mouse move request: {str(e)}")
+        
+        # Log de l'erreur
+        log_service.add_custom_log(
+            message=f" Thread {mouse_tag} - Error processing move request: {str(e)}",
+            level="ERROR",
+            mouse_id=mouse_id,
+            mouse_tag=mouse_tag,
+            error=str(e),
+            action="error_fallback"
+        )
+        
         # Fallback to random movement
         import random
         available_moves = request.get("availableMoves", ["north", "south", "east", "west"])
         move = random.choice(available_moves)
+        
+        # Log du mouvement de fallback
+        log_service.add_custom_log(
+            message=f" Thread {mouse_tag} - Using random fallback move: {move}",
+            level="WARNING",
+            mouse_id=mouse_id,
+            mouse_tag=mouse_tag,
+            move=move,
+            action="random_fallback"
+        )
+        
         return {
             "mouseId": request.get("mouseId", "unknown"),
             "move": move,
