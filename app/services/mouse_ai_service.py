@@ -414,11 +414,11 @@ class MouseAIService:
     
     def _is_stuck(self, mouse_id: str, current_pos: List[int]) -> bool:
         """Check if the mouse is stuck (same position for multiple turns)."""
-        if mouse_id not in self.position_history or len(self.position_history[mouse_id]) < 3:
+        if len(self.position_history) < 3:
             return False
         
         # Check if the mouse has been in the same position for the last 3 turns
-        recent_positions = self.position_history[mouse_id][-3:]
+        recent_positions = self.position_history[-3:]
         return all(pos == current_pos for pos in recent_positions)
     
     def _force_direction_change(self, labyrinth: List[List[int]], current_pos: List[int], goal_pos: List[int], mouse_id: str) -> List[int]:
